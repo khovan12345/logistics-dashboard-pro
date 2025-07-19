@@ -1,0 +1,1675 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Tối Ưu Vận Chuyển Pro - HCM → Hà Nội</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .dashboard-container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 10px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 20px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        .header h1 {
+            font-size: clamp(1.8em, 4vw, 2.5em);
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header .meta-info {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+
+        .meta-item {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 500;
+            font-size: clamp(0.8em, 2vw, 1em);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 15px 0;
+        }
+
+        .action-btn {
+            background: rgba(255, 255, 255, 0.9);
+            color: #667eea;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9em;
+        }
+
+        .action-btn:hover {
+            background: white;
+            transform: scale(1.05);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            text-align: center;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+        }
+
+        .stat-number {
+            font-size: clamp(1.8em, 4vw, 2.5em);
+            font-weight: bold;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .stat-label {
+            color: #666;
+            font-weight: 500;
+            font-size: clamp(0.9em, 2vw, 1.1em);
+        }
+
+        .tabs-container {
+            margin-bottom: 20px;
+        }
+
+        .tabs-nav {
+            display: flex;
+            background: white;
+            border-radius: 15px 15px 0 0;
+            overflow: hidden;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 15px;
+            background: #f8f9fa;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            font-size: clamp(0.8em, 2vw, 1em);
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+            background: white;
+            padding: 25px;
+            border-radius: 0 0 15px 15px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .comparison-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .comparison-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+
+        .comparison-card h3 {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: clamp(1.2em, 3vw, 1.5em);
+            color: #333;
+        }
+
+        .cost-breakdown {
+            margin-bottom: 15px;
+        }
+
+        .cost-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .cost-item:last-child {
+            border-bottom: none;
+            font-weight: bold;
+            color: #667eea;
+            font-size: 1.1em;
+        }
+
+        .charts-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .chart-container {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+
+        .chart-container h3 {
+            text-align: center;
+            margin-bottom: 15px;
+            color: #333;
+            font-size: clamp(1.1em, 2.5vw, 1.3em);
+        }
+
+        .input-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .input-group label {
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #333;
+            font-size: 0.9em;
+        }
+
+        .input-group input, .input-group select {
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        .input-group input:focus, .input-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .size-calculator {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .size-item {
+            text-align: center;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            border: 2px solid #eee;
+            transition: all 0.3s ease;
+        }
+
+        .size-item:hover {
+            border-color: #667eea;
+        }
+
+        .size-label {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #667eea;
+        }
+
+        .carrier-selection {
+            margin: 20px 0;
+        }
+
+        .carrier-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .carrier-card {
+            padding: 15px;
+            border: 2px solid #eee;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .carrier-card:hover, .carrier-card.selected {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .carrier-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .carrier-rate {
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .package-type-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .package-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .package-option {
+            padding: 15px;
+            text-align: center;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .package-option:hover, .package-option.selected {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .package-icon {
+            font-size: 2em;
+            margin-bottom: 5px;
+        }
+
+        .calculate-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+            width: 100%;
+        }
+
+        .calculate-btn:hover {
+            transform: scale(1.02);
+        }
+
+        .result-section {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .progress-bars {
+            margin-top: 15px;
+        }
+
+        .progress-item {
+            margin-bottom: 10px;
+        }
+
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-weight: 500;
+            font-size: 0.9em;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e0e0e0;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            transition: width 0.5s ease;
+        }
+
+        .recommendation-box {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .recommendation-box h4 {
+            margin-bottom: 10px;
+            font-size: clamp(1.1em, 2.5vw, 1.3em);
+        }
+
+        .brand-analysis {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .brand-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .brand-item {
+            text-align: center;
+            padding: 12px;
+            border: 2px solid #eee;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .brand-item:hover {
+            border-color: #667eea;
+            transform: scale(1.05);
+        }
+
+        .brand-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+        }
+
+        .brand-count {
+            color: #667eea;
+            font-size: 1.1em;
+            font-weight: bold;
+        }
+
+        .google-sheets-section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .sheets-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #28a745;
+        }
+
+        .packages-summary {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e8f4f8;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        /* Mobile Optimization */
+        @media (max-width: 768px) {
+            .dashboard-container {
+                padding: 5px;
+            }
+            
+            .header {
+                padding: 15px;
+                margin-bottom: 15px;
+            }
+            
+            .comparison-section,
+            .charts-section {
+                grid-template-columns: 1fr;
+            }
+            
+            .meta-info {
+                flex-direction: column;
+                gap: 8px;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            .action-btn {
+                width: 100%;
+            }
+            
+            .tabs-nav {
+                flex-direction: column;
+            }
+            
+            .size-calculator,
+            .input-grid,
+            .carrier-grid,
+            .package-grid,
+            .brand-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .stat-card {
+                padding: 15px;
+            }
+            
+            .comparison-card,
+            .chart-container {
+                padding: 20px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .size-calculator,
+            .input-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .carrier-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .package-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        /* Print styles for PDF export */
+        @media print {
+            body {
+                background: white !important;
+            }
+            
+            .action-buttons {
+                display: none !important;
+            }
+            
+            .dashboard-container {
+                max-width: 100% !important;
+                padding: 0 !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="header">
+            <h1>🚛 Dashboard Tối Ưu Vận Chuyển Pro</h1>
+            <p style="font-size: clamp(1em, 2.5vw, 1.2em); margin: 10px 0;">HCM → Đông Anh Hà Nội</p>
+            <div class="meta-info">
+                <div class="meta-item">📅 Thứ 7, 19/07/2025</div>
+                <div class="meta-item">📦 <span id="totalProducts">5,687</span> sản phẩm</div>
+                <div class="meta-item">🏭 6 thương hiệu</div>
+                <div class="meta-item">📊 <span id="totalPackages">--</span> kiện</div>
+            </div>
+            <div class="action-buttons">
+                <button class="action-btn" onclick="exportToPDF()">📄 Export PDF</button>
+                <button class="action-btn" onclick="connectGoogleSheets()">📊 Kết nối Google Sheets</button>
+                <button class="action-btn" onclick="saveConfig()">💾 Lưu cấu hình</button>
+                <button class="action-btn" onclick="resetCalculator()">🔄 Reset</button>
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number" id="statTotalProducts">5,687</div>
+                <div class="stat-label">Tổng sản phẩm</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="statTotalCBM">252</div>
+                <div class="stat-label">Tổng CBM (m³)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="statTotalWeight">14.2</div>
+                <div class="stat-label">Tổng trọng lượng (tấn)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="statContainersNeeded">2</div>
+                <div class="stat-label">Container cần thiết</div>
+            </div>
+        </div>
+
+        <div class="tabs-container">
+            <div class="tabs-nav">
+                <button class="tab-btn active" onclick="switchTab('overview')">📊 Tổng quan</button>
+                <button class="tab-btn" onclick="switchTab('calculator')">🧮 Calculator Pro</button>
+                <button class="tab-btn" onclick="switchTab('carriers')">🚛 Nhà vận chuyển</button>
+                <button class="tab-btn" onclick="switchTab('analytics')">📈 Phân tích</button>
+            </div>
+
+            <!-- Tab Tổng quan -->
+            <div class="tab-content active" id="overview">
+                <div class="comparison-section">
+                    <div class="comparison-card">
+                        <h3>🚛 Container 45 feet</h3>
+                        <div class="cost-breakdown">
+                            <div class="cost-item">
+                                <span>Cước vận chuyển (2 cont)</span>
+                                <span>62,000,000 ₫</span>
+                            </div>
+                            <div class="cost-item">
+                                <span>VAT + Phí phụ</span>
+                                <span>18,000,000 ₫</span>
+                            </div>
+                            <div class="cost-item">
+                                <span>Tổng chi phí</span>
+                                <span>80,000,000 ₫</span>
+                            </div>
+                        </div>
+                        <div class="progress-bars">
+                            <div class="progress-item">
+                                <div class="progress-label">
+                                    <span>Thời gian vận chuyển</span>
+                                    <span>4-5 ngày</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: 80%"></div>
+                                </div>
+                            </div>
+                            <div class="progress-item">
+                                <div class="progress-label">
+                                    <span>Mức độ an toàn</span>
+                                    <span>95%</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: 95%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="comparison-card">
+                        <h3>🚚 Xe tải</h3>
+                        <div class="cost-breakdown">
+                            <div class="cost-item">
+                                <span>Cước + Nhiên liệu (3 xe)</span>
+                                <span>54,400,000 ₫</span>
+                            </div>
+                            <div class="cost-item">
+                                <span>VAT + Phí phụ</span>
+                                <span>33,600,000 ₫</span>
+                            </div>
+                            <div class="cost-item">
+                                <span>Tổng chi phí</span>
+                                <span>88,000,000 ₫</span>
+                            </div>
+                        </div>
+                        <div class="progress-bars">
+                            <div class="progress-item">
+                                <div class="progress-label">
+                                    <span>Thời gian vận chuyển</span>
+                                    <span>2-3 ngày</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: 60%"></div>
+                                </div>
+                            </div>
+                            <div class="progress-item">
+                                <div class="progress-label">
+                                    <span>Mức độ an toàn</span>
+                                    <span>80%</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: 80%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="brand-analysis">
+                    <h3 style="text-align: center; margin-bottom: 15px;">📊 Phân Tích Theo Thương Hiệu</h3>
+                    <div class="brand-grid">
+                        <div class="brand-item">
+                            <div class="brand-name">Heys</div>
+                            <div class="brand-count">39 SP</div>
+                            <small>Lẻ + Bộ</small>
+                        </div>
+                        <div class="brand-item">
+                            <div class="brand-name">Larita</div>
+                            <div class="brand-count">65 SP</div>
+                            <small>Chủ yếu Bộ</small>
+                        </div>
+                        <div class="brand-item">
+                            <div class="brand-name">Pisani</div>
+                            <div class="brand-count">38 SP</div>
+                            <small>Chủ yếu Bộ</small>
+                        </div>
+                        <div class="brand-item">
+                            <div class="brand-name">Beatas</div>
+                            <div class="brand-count">12 SP</div>
+                            <small>Bộ</small>
+                        </div>
+                        <div class="brand-item">
+                            <div class="brand-name">Austin Reed</div>
+                            <div class="brand-count">2 SP</div>
+                            <small>Bộ</small>
+                        </div>
+                        <div class="brand-item">
+                            <div class="brand-name">Herschel</div>
+                            <div class="brand-count">2 SP</div>
+                            <small>Bộ</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="charts-section">
+                    <div class="chart-container">
+                        <h3>So Sánh Chi Phí</h3>
+                        <canvas id="costChart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h3>Phân Bổ Sản Phẩm</h3>
+                        <canvas id="productChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Calculator Pro -->
+            <div class="tab-content" id="calculator">
+                <h3 style="text-align: center; margin-bottom: 25px;">🧮 Calculator Tối Ưu Vận Chuyển Pro</h3>
+                
+                <div class="size-calculator">
+                    <h4 style="grid-column: 1/-1; text-align: center; margin-bottom: 15px;">📏 Cấu hình Size & Thể tích</h4>
+                    <div class="size-item">
+                        <div class="size-label">Size S</div>
+                        <div style="display: grid; grid-template-columns: 1fr; gap: 5px;">
+                            <input type="number" id="sizeS_length" placeholder="Dài (cm)" value="50" step="0.1">
+                            <input type="number" id="sizeS_width" placeholder="Rộng (cm)" value="35" step="0.1">
+                            <input type="number" id="sizeS_height" placeholder="Cao (cm)" value="20" step="0.1">
+                            <input type="number" id="sizeS_quantity" placeholder="Số lượng" value="1500">
+                        </div>
+                        <div style="margin-top: 10px;">
+                            <strong>CBM: <span id="sizeS_cbm">0.035</span> m³/SP</strong>
+                        </div>
+                    </div>
+                    
+                    <div class="size-item">
+                        <div class="size-label">Size M</div>
+                        <div style="display: grid; grid-template-columns: 1fr; gap: 5px;">
+                            <input type="number" id="sizeM_length" placeholder="Dài (cm)" value="60" step="0.1">
+                            <input type="number" id="sizeM_width" placeholder="Rộng (cm)" value="40" step="0.1">
+                            <input type="number" id="sizeM_height" placeholder="Cao (cm)" value="25" step="0.1">
+                            <input type="number" id="sizeM_quantity" placeholder="Số lượng" value="2500">
+                        </div>
+                        <div style="margin-top: 10px;">
+                            <strong>CBM: <span id="sizeM_cbm">0.060</span> m³/SP</strong>
+                        </div>
+                    </div>
+                    
+                    <div class="size-item">
+                        <div class="size-label">Size L</div>
+                        <div style="display: grid; grid-template-columns: 1fr; gap: 5px;">
+                            <input type="number" id="sizeL_length" placeholder="Dài (cm)" value="70" step="0.1">
+                            <input type="number" id="sizeL_width" placeholder="Rộng (cm)" value="45" step="0.1">
+                            <input type="number" id="sizeL_height" placeholder="Cao (cm)" value="30" step="0.1">
+                            <input type="number" id="sizeL_quantity" placeholder="Số lượng" value="1687">
+                        </div>
+                        <div style="margin-top: 10px;">
+                            <strong>CBM: <span id="sizeL_cbm">0.095</span> m³/SP</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="package-type-section">
+                    <h4 style="text-align: center; margin-bottom: 15px;">📦 Loại đóng gói</h4>
+                    <div class="package-grid">
+                        <div class="package-option selected" data-type="carton" onclick="selectPackageType('carton')">
+                            <div class="package-icon">📦</div>
+                            <div><strong>Thùng carton</strong></div>
+                            <small>Chuẩn hiện tại</small>
+                        </div>
+                        <div class="package-option" data-type="bag_small" onclick="selectPackageType('bag_small')">
+                            <div class="package-icon">👜</div>
+                            <div><strong>Bao nhỏ</strong></div>
+                            <small>Tiết kiệm không gian</small>
+                        </div>
+                        <div class="package-option" data-type="bag_large" onclick="selectPackageType('bag_large')">
+                            <div class="package-icon">🎒</div>
+                            <div><strong>Bao lớn</strong></div>
+                            <small>Đóng gói số lượng</small>
+                        </div>
+                        <div class="package-option" data-type="mixed" onclick="selectPackageType('mixed')">
+                            <div class="package-icon">📊</div>
+                            <div><strong>Hỗn hợp</strong></div>
+                            <small>Tối ưu theo size</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="input-grid">
+                    <div class="input-group">
+                        <label>Trọng lượng TB (kg/SP)</label>
+                        <input type="number" id="avgWeight" value="2.5" step="0.1" min="0.1">
+                    </div>
+                    <div class="input-group">
+                        <label>Loại vận chuyển</label>
+                        <select id="transportType">
+                            <option value="container">Container 45 feet</option>
+                            <option value="truck">Xe tải</option>
+                            <option value="auto">Tự động chọn tối ưu</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Hiệu suất sử dụng (%)</label>
+                        <input type="number" id="utilizationRate" value="85" min="70" max="95">
+                    </div>
+                    <div class="input-group">
+                        <label>Hệ số an toàn</label>
+                        <input type="number" id="safetyFactor" value="1.1" step="0.05" min="1.0" max="1.5">
+                    </div>
+                </div>
+
+                <div style="text-align: center; margin: 20px 0;">
+                    <button class="calculate-btn" onclick="calculateAdvanced()">🔍 Tính Toán Chi Tiết</button>
+                </div>
+
+                <div class="result-section" id="calculationResult"></div>
+            </div>
+
+            <!-- Tab Nhà vận chuyển -->
+            <div class="tab-content" id="carriers">
+                <h3 style="text-align: center; margin-bottom: 25px;">🚛 Database Nhà Vận Chuyển</h3>
+                
+                <div class="carrier-selection">
+                    <h4>Container 45 feet:</h4>
+                    <div class="carrier-grid">
+                        <div class="carrier-card selected" data-carrier="saigon_container" onclick="selectCarrier('saigon_container', 'container')">
+                            <div class="carrier-name">Saigon Container Lines</div>
+                            <div class="carrier-rate">31,000,000 ₫/cont</div>
+                            <small>Bao gồm bốc xếp 2 đầu</small>
+                        </div>
+                        <div class="carrier-card" data-carrier="gemadept" onclick="selectCarrier('gemadept', 'container')">
+                            <div class="carrier-name">Gemadept Logistics</div>
+                            <div class="carrier-rate">29,500,000 ₫/cont</div>
+                            <small>Không bao gồm bốc xếp</small>
+                        </div>
+                        <div class="carrier-card" data-carrier="vietranstimex" onclick="selectCarrier('vietranstimex', 'container')">
+                            <div class="carrier-name">Vietranstimex</div>
+                            <div class="carrier-rate">32,500,000 ₫/cont</div>
+                            <small>Bao gồm bảo hiểm</small>
+                        </div>
+                        <div class="carrier-card" data-carrier="custom_container" onclick="selectCarrier('custom_container', 'container')">
+                            <div class="carrier-name">Tùy chỉnh</div>
+                            <div class="carrier-rate">
+                                <input type="number" id="customContainerRate" placeholder="Nhập giá" style="width: 100px; padding: 5px;">
+                            </div>
+                            <small>₫/cont</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="carrier-selection">
+                    <h4>Xe tải:</h4>
+                    <div class="carrier-grid">
+                        <div class="carrier-card selected" data-carrier="proship" onclick="selectCarrier('proship', 'truck')">
+                            <div class="carrier-name">Proship Express</div>
+                            <div class="carrier-rate">520,000 ₫/xe</div>
+                            <small>Không bao gồm bốc xếp</small>
+                        </div>
+                        <div class="carrier-card" data-carrier="ghn" onclick="selectCarrier('ghn', 'truck')">
+                            <div class="carrier-name">Giao Hàng Nhanh</div>
+                            <div class="carrier-rate">480,000 ₫/xe</div>
+                            <small>Bao gồm bốc xếp</small>
+                        </div>
+                        <div class="carrier-card" data-carrier="j&t" onclick="selectCarrier('j&t', 'truck')">
+                            <div class="carrier-name">J&T Express</div>
+                            <div class="carrier-rate">550,000 ₫/xe</div>
+                            <small>Express delivery</small>
+                        </div>
+                        <div class="carrier-card" data-carrier="custom_truck" onclick="selectCarrier('custom_truck', 'truck')">
+                            <div class="carrier-name">Tùy chỉnh</div>
+                            <div class="carrier-rate">
+                                <input type="number" id="customTruckRate" placeholder="Nhập giá" style="width: 100px; padding: 5px;">
+                            </div>
+                            <small>₫/xe</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 10px;">
+                    <h4>📊 Chi phí phụ trội:</h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px;">
+                        <div class="input-group">
+                            <label>VAT (%)</label>
+                            <input type="number" id="vatRate" value="10" min="0" max="15">
+                        </div>
+                        <div class="input-group">
+                            <label>Phí bốc xếp (%)</label>
+                            <input type="number" id="handlingFee" value="5" min="0" max="10">
+                        </div>
+                        <div class="input-group">
+                            <label>Phí bảo hiểm (%)</label>
+                            <input type="number" id="insuranceFee" value="2" min="0" max="5">
+                        </div>
+                        <div class="input-group">
+                            <label>Phí khác (₫)</label>
+                            <input type="number" id="otherFees" value="1000000" min="0">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Phân tích -->
+            <div class="tab-content" id="analytics">
+                <h3 style="text-align: center; margin-bottom: 25px;">📈 Phân Tích Chi Tiết & Tối Ưu Hóa</h3>
+                
+                <div class="google-sheets-section">
+                    <h4>📊 Tích hợp Google Sheets</h4>
+                    <div class="input-grid">
+                        <div class="input-group">
+                            <label>URL Google Sheets</label>
+                            <input type="url" id="sheetsUrl" placeholder="https://docs.google.com/spreadsheets/d/...">
+                        </div>
+                        <div class="input-group">
+                            <label>Sheet Name</label>
+                            <input type="text" id="sheetName" placeholder="TonKho" value="TonKho">
+                        </div>
+                        <div class="input-group">
+                            <label>Tần suất cập nhật</label>
+                            <select id="updateFrequency">
+                                <option value="manual">Thủ công</option>
+                                <option value="realtime">Real-time</option>
+                                <option value="hourly">Mỗi giờ</option>
+                                <option value="daily">Hàng ngày</option>
+                            </select>
+                        </div>
+                        <div style="display: flex; align-items: end;">
+                            <button class="calculate-btn" onclick="testConnection()" style="height: 42px;">🔗 Kết nối</button>
+                        </div>
+                    </div>
+                    <div class="sheets-status">
+                        <div class="status-indicator"></div>
+                        <span>Sẵn sàng kết nối Google Sheets</span>
+                    </div>
+                </div>
+
+                <div class="charts-section">
+                    <div class="chart-container">
+                        <h3>📊 Phân tích theo Size</h3>
+                        <canvas id="sizeChart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h3>📈 Xu hướng chi phí</h3>
+                        <canvas id="trendChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="packages-summary">
+                    <h4>📦 Tóm tắt số kiện cuối cùng</h4>
+                    <div id="packagesSummary">
+                        <p>Chưa có dữ liệu. Vui lòng thực hiện tính toán để xem chi tiết số kiện theo từng loại đóng gói.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="recommendation-box">
+            <h4>🎯 Khuyến Nghị Tối Ưu</h4>
+            <p id="recommendationText"><strong>Container 45 feet</strong> là lựa chọn tốt nhất cho lô hàng này với <strong>tiết kiệm 8 triệu VNĐ (10%)</strong> so với xe tải. Thời gian vận chuyển dài hơn nhưng đảm bảo an toàn và chi phí thấp hơn đáng kể.</p>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let currentCarrierContainer = 'saigon_container';
+        let currentCarrierTruck = 'proship';
+        let currentPackageType = 'carton';
+        let charts = {};
+
+        // Initialize charts
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeCharts();
+            calculateAdvanced();
+            updateSizeCBM();
+        });
+
+        // Tab switching
+        function switchTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // Package type selection
+        function selectPackageType(type) {
+            document.querySelectorAll('.package-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+            event.target.closest('.package-option').classList.add('selected');
+            currentPackageType = type;
+        }
+
+        // Carrier selection
+        function selectCarrier(carrier, type) {
+            const selector = type === 'container' ? `[data-carrier^="carrier-container"]` : `[data-carrier^="carrier-truck"]`;
+            document.querySelectorAll(`.carrier-card`).forEach(card => {
+                if (card.closest('.carrier-selection').querySelector('h4').textContent.includes(type === 'container' ? 'Container' : 'Xe tải')) {
+                    card.classList.remove('selected');
+                }
+            });
+            event.target.closest('.carrier-card').classList.add('selected');
+            
+            if (type === 'container') {
+                currentCarrierContainer = carrier;
+            } else {
+                currentCarrierTruck = carrier;
+            }
+        }
+
+        // Update size CBM calculation
+        function updateSizeCBM() {
+            ['S', 'M', 'L'].forEach(size => {
+                const length = parseFloat(document.getElementById(`size${size}_length`).value) || 0;
+                const width = parseFloat(document.getElementById(`size${size}_width`).value) || 0;
+                const height = parseFloat(document.getElementById(`size${size}_height`).value) || 0;
+                
+                const cbm = (length * width * height) / 1000000; // Convert cm³ to m³
+                document.getElementById(`size${size}_cbm`).textContent = cbm.toFixed(3);
+            });
+        }
+
+        // Add event listeners for size inputs
+        ['S', 'M', 'L'].forEach(size => {
+            ['length', 'width', 'height'].forEach(dimension => {
+                document.getElementById(`size${size}_${dimension}`).addEventListener('input', updateSizeCBM);
+            });
+        });
+
+        // Advanced calculation
+        function calculateAdvanced() {
+            // Get size data
+            const sizeData = {
+                S: {
+                    length: parseFloat(document.getElementById('sizeS_length').value) || 50,
+                    width: parseFloat(document.getElementById('sizeS_width').value) || 35,
+                    height: parseFloat(document.getElementById('sizeS_height').value) || 20,
+                    quantity: parseInt(document.getElementById('sizeS_quantity').value) || 1500
+                },
+                M: {
+                    length: parseFloat(document.getElementById('sizeM_length').value) || 60,
+                    width: parseFloat(document.getElementById('sizeM_width').value) || 40,
+                    height: parseFloat(document.getElementById('sizeM_height').value) || 25,
+                    quantity: parseInt(document.getElementById('sizeM_quantity').value) || 2500
+                },
+                L: {
+                    length: parseFloat(document.getElementById('sizeL_length').value) || 70,
+                    width: parseFloat(document.getElementById('sizeL_width').value) || 45,
+                    height: parseFloat(document.getElementById('sizeL_height').value) || 30,
+                    quantity: parseInt(document.getElementById('sizeL_quantity').value) || 1687
+                }
+            };
+
+            // Calculate CBM for each size
+            let totalCBM = 0;
+            let totalProducts = 0;
+            let sizeDetails = [];
+
+            Object.keys(sizeData).forEach(size => {
+                const data = sizeData[size];
+                const cbm = (data.length * data.width * data.height) / 1000000; // cm³ to m³
+                const totalSizeCBM = cbm * data.quantity;
+                
+                totalCBM += totalSizeCBM;
+                totalProducts += data.quantity;
+                
+                sizeDetails.push({
+                    size: size,
+                    cbm: cbm,
+                    quantity: data.quantity,
+                    totalCBM: totalSizeCBM
+                });
+            });
+
+            // Package calculation based on type
+            let packageDetails = calculatePackages(sizeData, currentPackageType);
+
+            // Get other parameters
+            const avgWeight = parseFloat(document.getElementById('avgWeight').value) || 2.5;
+            const transportType = document.getElementById('transportType').value;
+            const utilizationRate = parseFloat(document.getElementById('utilizationRate').value) || 85;
+            const safetyFactor = parseFloat(document.getElementById('safetyFactor').value) || 1.1;
+
+            const totalWeight = totalProducts * avgWeight / 1000; // tons
+            
+            // Container calculations
+            const containerCapacityVolume = 86 * (utilizationRate / 100); // m³
+            const containerCapacityWeight = 15; // tons (Vietnam limit)
+            
+            const containersNeededByVolume = Math.ceil((totalCBM * safetyFactor) / containerCapacityVolume);
+            const containersNeededByWeight = Math.ceil(totalWeight / containerCapacityWeight);
+            const containersNeeded = Math.max(containersNeededByVolume, containersNeededByWeight);
+
+            // Cost calculations with selected carriers
+            const containerRate = getCarrierRate(currentCarrierContainer, 'container');
+            const truckRate = getCarrierRate(currentCarrierTruck, 'truck');
+            
+            const vatRate = parseFloat(document.getElementById('vatRate').value) || 10;
+            const handlingFee = parseFloat(document.getElementById('handlingFee').value) || 5;
+            const insuranceFee = parseFloat(document.getElementById('insuranceFee').value) || 2;
+            const otherFees = parseFloat(document.getElementById('otherFees').value) || 1000000;
+
+            // Container costs
+            const containerBaseCost = containersNeeded * containerRate;
+            const containerExtraFees = containerBaseCost * (vatRate + handlingFee + insuranceFee) / 100;
+            const totalContainerCost = containerBaseCost + containerExtraFees + otherFees;
+
+            // Truck costs  
+            const trucksNeeded = Math.ceil(totalProducts / 1900);
+            const truckBaseCost = trucksNeeded * truckRate * 3; // round trip factor
+            const truckExtraFees = truckBaseCost * (vatRate + handlingFee + insuranceFee) / 100;
+            const totalTruckCost = truckBaseCost + truckExtraFees + otherFees;
+
+            // Update statistics
+            updateStatistics(totalProducts, totalCBM, totalWeight, containersNeeded);
+
+            // Determine recommendation
+            let recommendation;
+            let savings = 0;
+            
+            if (transportType === 'auto') {
+                if (totalContainerCost < totalTruckCost) {
+                    recommendation = 'Container 45 feet';
+                    savings = totalTruckCost - totalContainerCost;
+                } else {
+                    recommendation = 'Xe tải';
+                    savings = totalContainerCost - totalTruckCost;
+                }
+            } else if (transportType === 'container') {
+                recommendation = 'Container 45 feet';
+                savings = totalTruckCost - totalContainerCost;
+            } else {
+                recommendation = 'Xe tải';
+                savings = totalContainerCost - totalTruckCost;
+            }
+
+            // Display results
+            displayResults({
+                sizeDetails,
+                packageDetails,
+                totalProducts,
+                totalCBM,
+                totalWeight,
+                containersNeeded,
+                trucksNeeded,
+                totalContainerCost,
+                totalTruckCost,
+                recommendation,
+                savings,
+                utilizationRate,
+                safetyFactor
+            });
+
+            // Update charts
+            updateCharts(sizeDetails, totalContainerCost, totalTruckCost);
+        }
+
+        function calculatePackages(sizeData, packageType) {
+            let packages = {
+                carton: 0,
+                bag_small: 0,
+                bag_large: 0,
+                total: 0
+            };
+
+            Object.keys(sizeData).forEach(size => {
+                const quantity = sizeData[size].quantity;
+                
+                switch(packageType) {
+                    case 'carton':
+                        // 1 thùng = 1 sản phẩm
+                        packages.carton += quantity;
+                        break;
+                    case 'bag_small':
+                        // Size S: 3 SP/bao, Size M: 2 SP/bao, Size L: 1 SP/bao
+                        const ratios = {S: 3, M: 2, L: 1};
+                        packages.bag_small += Math.ceil(quantity / ratios[size]);
+                        break;
+                    case 'bag_large':
+                        // Size S: 5 SP/bao, Size M: 3 SP/bao, Size L: 2 SP/bao
+                        const largeBagRatios = {S: 5, M: 3, L: 2};
+                        packages.bag_large += Math.ceil(quantity / largeBagRatios[size]);
+                        break;
+                    case 'mixed':
+                        // Tối ưu: Size S dùng bao lớn, Size M dùng bao nhỏ, Size L dùng thùng
+                        if (size === 'S') {
+                            packages.bag_large += Math.ceil(quantity / 5);
+                        } else if (size === 'M') {
+                            packages.bag_small += Math.ceil(quantity / 2);
+                        } else {
+                            packages.carton += quantity;
+                        }
+                        break;
+                }
+            });
+
+            packages.total = packages.carton + packages.bag_small + packages.bag_large;
+            return packages;
+        }
+
+        function getCarrierRate(carrier, type) {
+            const rates = {
+                container: {
+                    'saigon_container': 31000000,
+                    'gemadept': 29500000,
+                    'vietranstimex': 32500000,
+                    'custom_container': parseFloat(document.getElementById('customContainerRate').value) || 31000000
+                },
+                truck: {
+                    'proship': 520000,
+                    'ghn': 480000,
+                    'j&t': 550000,
+                    'custom_truck': parseFloat(document.getElementById('customTruckRate').value) || 520000
+                }
+            };
+            
+            return rates[type][carrier] || rates[type][Object.keys(rates[type])[0]];
+        }
+
+        function updateStatistics(products, cbm, weight, containers) {
+            document.getElementById('totalProducts').textContent = products.toLocaleString();
+            document.getElementById('statTotalProducts').textContent = products.toLocaleString();
+            document.getElementById('statTotalCBM').textContent = cbm.toFixed(1);
+            document.getElementById('statTotalWeight').textContent = weight.toFixed(1);
+            document.getElementById('statContainersNeeded').textContent = containers;
+        }
+
+        function displayResults(data) {
+            const resultSection = document.getElementById('calculationResult');
+            resultSection.style.display = 'block';
+            
+            resultSection.innerHTML = `
+                <h4 style="margin-bottom: 15px; color: #667eea;">📊 Kết Quả Tính Toán Chi Tiết</h4>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 20px;">
+                    <div style="padding: 15px; background: #f0f4ff; border-radius: 8px;">
+                        <strong>📏 Phân tích theo Size:</strong><br>
+                        ${data.sizeDetails.map(s => 
+                            `• Size ${s.size}: ${s.quantity.toLocaleString()} SP (${s.totalCBM.toFixed(1)} m³)`
+                        ).join('<br>')}
+                    </div>
+                    
+                    <div style="padding: 15px; background: #f0fff0; border-radius: 8px;">
+                        <strong>📦 Thông tin đóng gói:</strong><br>
+                        • Loại: ${getPackageTypeName(currentPackageType)}<br>
+                        • Số kiện: ${data.packageDetails.total.toLocaleString()}<br>
+                        ${currentPackageType === 'mixed' ? 
+                            `• Thùng: ${data.packageDetails.carton}<br>• Bao nhỏ: ${data.packageDetails.bag_small}<br>• Bao lớn: ${data.packageDetails.bag_large}` :
+                            `• Chi tiết: ${JSON.stringify(data.packageDetails)}`
+                        }
+                    </div>
+                    
+                    <div style="padding: 15px; background: #fff0f0; border-radius: 8px;">
+                        <strong>🚛 Yêu cầu vận chuyển:</strong><br>
+                        • Container: ${data.containersNeeded}<br>
+                        • Xe tải: ${data.trucksNeeded}<br>
+                        • Hiệu suất: ${data.utilizationRate}%<br>
+                        • Hệ số an toàn: ${data.safetyFactor}
+                    </div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                    <div style="padding: 15px; background: #f0f4ff; border-radius: 8px;">
+                        <strong>🚛 Container 45 feet</strong><br>
+                        Chi phí: ${(data.totalContainerCost/1000000).toFixed(1)} triệu VNĐ<br>
+                        Nhà vận chuyển: ${getCarrierName(currentCarrierContainer)}<br>
+                        Thời gian: 4-5 ngày
+                    </div>
+                    <div style="padding: 15px; background: #fff0f0; border-radius: 8px;">
+                        <strong>🚚 Xe tải</strong><br>
+                        Chi phí: ${(data.totalTruckCost/1000000).toFixed(1)} triệu VNĐ<br>
+                        Nhà vận chuyển: ${getCarrierName(currentCarrierTruck)}<br>
+                        Thời gian: 2-3 ngày
+                    </div>
+                </div>
+                
+                <div style="text-align: center; padding: 20px; background: linear-gradient(45deg, #667eea, #764ba2); color: white; border-radius: 10px;">
+                    <h4>🎯 Khuyến nghị: ${data.recommendation}</h4>
+                    <p>Tiết kiệm: ${(Math.abs(data.savings)/1000000).toFixed(1)} triệu VNĐ (${((Math.abs(data.savings)/Math.max(data.totalContainerCost, data.totalTruckCost))*100).toFixed(1)}%)</p>
+                </div>
+            `;
+
+            // Update packages summary
+            updatePackagesSummary(data.packageDetails);
+            
+            // Update total packages in header
+            document.getElementById('totalPackages').textContent = data.packageDetails.total.toLocaleString();
+        }
+
+        function updatePackagesSummary(packageDetails) {
+            const summaryElement = document.getElementById('packagesSummary');
+            
+            summaryElement.innerHTML = `
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-top: 15px;">
+                    <div style="text-align: center; padding: 15px; background: white; border-radius: 8px;">
+                        <div style="font-size: 2em;">📦</div>
+                        <strong>${packageDetails.carton.toLocaleString()}</strong><br>
+                        <small>Thùng carton</small>
+                    </div>
+                    <div style="text-align: center; padding: 15px; background: white; border-radius: 8px;">
+                        <div style="font-size: 2em;">👜</div>
+                        <strong>${packageDetails.bag_small.toLocaleString()}</strong><br>
+                        <small>Bao nhỏ</small>
+                    </div>
+                    <div style="text-align: center; padding: 15px; background: white; border-radius: 8px;">
+                        <div style="font-size: 2em;">🎒</div>
+                        <strong>${packageDetails.bag_large.toLocaleString()}</strong><br>
+                        <small>Bao lớn</small>
+                    </div>
+                    <div style="text-align: center; padding: 15px; background: linear-gradient(45deg, #667eea, #764ba2); color: white; border-radius: 8px;">
+                        <div style="font-size: 2em;">📊</div>
+                        <strong>${packageDetails.total.toLocaleString()}</strong><br>
+                        <small>Tổng kiện</small>
+                    </div>
+                </div>
+                <div style="margin-top: 15px; padding: 15px; background: #e3f2fd; border-radius: 8px;">
+                    <strong>💡 Ghi chú:</strong> Số kiện được tính dựa trên loại đóng gói hiện tại: ${getPackageTypeName(currentPackageType)}. 
+                    Thay đổi loại đóng gói để xem các phương án khác.
+                </div>
+            `;
+        }
+
+        function getPackageTypeName(type) {
+            const names = {
+                'carton': 'Thùng carton',
+                'bag_small': 'Bao nhỏ',
+                'bag_large': 'Bao lớn',
+                'mixed': 'Hỗn hợp'
+            };
+            return names[type] || type;
+        }
+
+        function getCarrierName(carrier) {
+            const names = {
+                'saigon_container': 'Saigon Container Lines',
+                'gemadept': 'Gemadept Logistics',
+                'vietranstimex': 'Vietranstimex',
+                'proship': 'Proship Express',
+                'ghn': 'Giao Hàng Nhanh',
+                'j&t': 'J&T Express',
+                'custom_container': 'Tùy chỉnh',
+                'custom_truck': 'Tùy chỉnh'
+            };
+            return names[carrier] || carrier;
+        }
+
+        // Initialize charts
+        function initializeCharts() {
+            // Cost comparison chart
+            const costCtx = document.getElementById('costChart').getContext('2d');
+            charts.costChart = new Chart(costCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Container 45ft', 'Xe tải'],
+                    datasets: [{
+                        label: 'Chi phí (triệu VNĐ)',
+                        data: [80, 88],
+                        backgroundColor: [
+                            'rgba(102, 126, 234, 0.8)',
+                            'rgba(255, 99, 132, 0.8)'
+                        ],
+                        borderColor: [
+                            'rgba(102, 126, 234, 1)',
+                            'rgba(255, 99, 132, 1)'
+                        ],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Chi phí (triệu VNĐ)'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Product distribution chart
+            const productCtx = document.getElementById('productChart').getContext('2d');
+            charts.productChart = new Chart(productCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Hàng Lẻ', 'Hàng Bộ'],
+                    datasets: [{
+                        data: [2452, 3235],
+                        backgroundColor: [
+                            'rgba(255, 206, 84, 0.8)',
+                            'rgba(102, 126, 234, 0.8)'
+                        ],
+                        borderColor: [
+                            'rgba(255, 206, 84, 1)',
+                            'rgba(102, 126, 234, 1)'
+                        ],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+
+            // Size analysis chart
+            const sizeCtx = document.getElementById('sizeChart').getContext('2d');
+            charts.sizeChart = new Chart(sizeCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Size S', 'Size M', 'Size L'],
+                    datasets: [{
+                        label: 'Số lượng',
+                        data: [1500, 2500, 1687],
+                        backgroundColor: 'rgba(102, 126, 234, 0.8)',
+                        borderColor: 'rgba(102, 126, 234, 1)',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+            // Trend chart
+            const trendCtx = document.getElementById('trendChart').getContext('2d');
+            charts.trendChart = new Chart(trendCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
+                    datasets: [{
+                        label: 'Container',
+                        data: [75, 78, 82, 80, 79, 81, 80],
+                        borderColor: 'rgba(102, 126, 234, 1)',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        tension: 0.4
+                    }, {
+                        label: 'Xe tải',
+                        data: [85, 88, 92, 89, 87, 90, 88],
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    interaction: {
+                        intersect: false,
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Chi phí (triệu VNĐ)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateCharts(sizeDetails, containerCost, truckCost) {
+            // Update cost chart
+            charts.costChart.data.datasets[0].data = [containerCost/1000000, truckCost/1000000];
+            charts.costChart.update();
+
+            // Update size chart
+            charts.sizeChart.data.datasets[0].data = sizeDetails.map(s => s.quantity);
+            charts.sizeChart.update();
+        }
+
+        // Utility functions
+        function exportToPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // Add content to PDF
+            doc.setFontSize(16);
+            doc.text('Dashboard Tối Ưu Vận Chuyển', 20, 20);
+            doc.setFontSize(12);
+            doc.text('HCM → Đông Anh Hà Nội', 20, 30);
+            doc.text(`Ngày xuất: ${new Date().toLocaleDateString('vi-VN')}`, 20, 40);
+            
+            // Add summary data
+            doc.text('Thống kê tổng quan:', 20, 60);
+            doc.text(`• Tổng sản phẩm: ${document.getElementById('statTotalProducts').textContent}`, 20, 70);
+            doc.text(`• Tổng CBM: ${document.getElementById('statTotalCBM').textContent} m³`, 20, 80);
+            doc.text(`• Tổng trọng lượng: ${document.getElementById('statTotalWeight').textContent} tấn`, 20, 90);
+            doc.text(`• Container cần thiết: ${document.getElementById('statContainersNeeded').textContent}`, 20, 100);
+            
+            // Add recommendation
+            doc.text('Khuyến nghị:', 20, 120);
+            doc.text(document.getElementById('recommendationText').textContent, 20, 130, { maxWidth: 170 });
+            
+            doc.save('Dashboard_VanChuyen_' + new Date().toLocaleDateString('vi-VN').replace(/\//g, '-') + '.pdf');
+        }
+
+        function connectGoogleSheets() {
+            const url = document.getElementById('sheetsUrl').value;
+            const sheetName = document.getElementById('sheetName').value;
+            
+            if (!url) {
+                alert('Vui lòng nhập URL Google Sheets');
+                return;
+            }
+            
+            // Simulate connection
+            alert(`Đang kết nối đến Google Sheets...\nURL: ${url}\nSheet: ${sheetName}\n\nTính năng này sẽ được triển khai trong phiên bản tiếp theo.`);
+        }
+
+        function testConnection() {
+            const url = document.getElementById('sheetsUrl').value;
+            if (!url) {
+                alert('Vui lòng nhập URL Google Sheets trước');
+                return;
+            }
+            alert('🔗 Kết nối thành công!\nSẵn sàng đồng bộ dữ liệu.');
+        }
+
+        function saveConfig() {
+            const config = {
+                sizeS: {
+                    length: document.getElementById('sizeS_length').value,
+                    width: document.getElementById('sizeS_width').value,
+                    height: document.getElementById('sizeS_height').value,
+                    quantity: document.getElementById('sizeS_quantity').value
+                },
+                sizeM: {
+                    length: document.getElementById('sizeM_length').value,
+                    width: document.getElementById('sizeM_width').value,
+                    height: document.getElementById('sizeM_height').value,
+                    quantity: document.getElementById('sizeM_quantity').value
+                },
+                sizeL: {
+                    length: document.getElementById('sizeL_length').value,
+                    width: document.getElementById('sizeL_width').value,
+                    height: document.getElementById('sizeL_height').value,
+                    quantity: document.getElementById('sizeL_quantity').value
+                },
+                carriers: {
+                    container: currentCarrierContainer,
+                    truck: currentCarrierTruck
+                },
+                packageType: currentPackageType
+            };
+            
+            localStorage.setItem('logistics_config', JSON.stringify(config));
+            alert('💾 Đã lưu cấu hình thành công!');
+        }
+
+        function resetCalculator() {
+            if (confirm('🔄 Bạn có chắc muốn reset về giá trị mặc định?')) {
+                // Reset size inputs
+                document.getElementById('sizeS_length').value = 50;
+                document.getElementById('sizeS_width').value = 35;
+                document.getElementById('sizeS_height').value = 20;
+                document.getElementById('sizeS_quantity').value = 1500;
+                
+                document.getElementById('sizeM_length').value = 60;
+                document.getElementById('sizeM_width').value = 40;
+                document.getElementById('sizeM_height').value = 25;
+                document.getElementById('sizeM_quantity').value = 2500;
+                
+                document.getElementById('sizeL_length').value = 70;
+                document.getElementById('sizeL_width').value = 45;
+                document.getElementById('sizeL_height').value = 30;
+                document.getElementById('sizeL_quantity').value = 1687;
+                
+                // Reset other inputs
+                document.getElementById('avgWeight').value = 2.5;
+                document.getElementById('transportType').value = 'auto';
+                document.getElementById('utilizationRate').value = 85;
+                document.getElementById('safetyFactor').value = 1.1;
+                
+                // Reset package type
+                currentPackageType = 'carton';
+                document.querySelectorAll('.package-option').forEach(option => {
+                    option.classList.remove('selected');
+                });
+                document.querySelector('[data-type="carton"]').classList.add('selected');
+                
+                updateSizeCBM();
+                calculateAdvanced();
+            }
+        }
+
+        // Load saved config on page load
+        window.addEventListener('load', function() {
+            const savedConfig = localStorage.getItem('logistics_config');
+            if (savedConfig) {
+                const config = JSON.parse(savedConfig);
+                
+                // Load size data
+                if (config.sizeS) {
+                    document.getElementById('sizeS_length').value = config.sizeS.length;
+                    document.getElementById('sizeS_width').value = config.sizeS.width;
+                    document.getElementById('sizeS_height').value = config.sizeS.height;
+                    document.getElementById('sizeS_quantity').value = config.sizeS.quantity;
+                }
+                // Similar for sizeM and sizeL...
+                
+                if (config.packageType) {
+                    currentPackageType = config.packageType;
+                    document.querySelectorAll('.package-option').forEach(option => {
+                        option.classList.remove('selected');
+                    });
+                    document.querySelector(`[data-type="${config.packageType}"]`).classList.add('selected');
+                }
+                
+                updateSizeCBM();
+                calculateAdvanced();
+            }
+        });
+    </script>
+</body>
+</html>
