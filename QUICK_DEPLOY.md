@@ -15,11 +15,13 @@ npm run build  # Kiểm tra build
 ### 2. Deploy ngay lập tức
 
 **Option A: Vercel CLI (Nhanh nhất)**
+
 ```bash
 npx vercel --prod
 ```
 
 **Option B: Vercel Dashboard**
+
 1. Truy cập [vercel.com](https://vercel.com)
 2. "New Project" → Import từ GitHub
 3. Deploy!
@@ -63,7 +65,7 @@ curl -X POST https://api.telegram.org/bot<TOKEN>/setWebhook \
   -d '{"url": "https://your-app.vercel.app/api/telegram/webhook"}'
 ```
 
-## ✅ Hoàn thành!
+## ✅ Hoàn thành
 
 Dashboard sẽ available tại: `https://your-app.vercel.app`
 
