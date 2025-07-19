@@ -1,12 +1,23 @@
 import { DashboardConfig, GoogleSheetsRow, VehicleTrip } from '@/types';
+import { JWT } from 'google-auth-library';
 import { google } from 'googleapis';
 
 // Khởi tạo Google Sheets API
-const getGoogleAuth = () => {
+const getGoogleAuth = (): JWT | null => {
   const credentials = {
     client_email: process.env.GOOGLE_CLIENT_EMAIL,
     private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
   };
+
+  // Check if credentials are properly configured
+  if (
+    !credentials.client_email ||
+    !credentials.private_key ||
+    credentials.client_email.includes('your-') ||
+    credentials.private_key.includes('Your-Private-Key-Here')
+  ) {
+    return null;
+  }
 
   return new google.auth.JWT({
     email: credentials.client_email,
@@ -18,17 +29,24 @@ const getGoogleAuth = () => {
 const sheets = google.sheets('v4');
 
 export class GoogleSheetsService {
-  private auth;
+  private auth: JWT | null;
   private spreadsheetId: string;
+  private isConfigured: boolean;
 
   constructor() {
     this.auth = getGoogleAuth();
+    this.isConfigured = !!this.auth;
     this.spreadsheetId = process.env.GOOGLE_SHEETS_ID || '';
   }
 
   // Ghi dữ liệu chuyến xe vào Google Sheets
   async logTrip(trip: VehicleTrip): Promise<boolean> {
     try {
+      if (!this.isConfigured || !this.auth) {
+        console.warn('Google Sheets not configured - skipping trip logging');
+        return false;
+      }
+
       const row: GoogleSheetsRow = {
         timestamp: new Date().toISOString(),
         tripId: trip.id,
@@ -66,6 +84,11 @@ export class GoogleSheetsService {
   // Đọc cấu hình từ Google Sheets
   async getConfig(): Promise<DashboardConfig | null> {
     try {
+      if (!this.isConfigured || !this.auth) {
+        console.warn('Google Sheets not configured - skipping config read');
+        return null;
+      }
+
       const response = await sheets.spreadsheets.values.get({
         auth: this.auth,
         spreadsheetId: this.spreadsheetId,
@@ -99,6 +122,11 @@ export class GoogleSheetsService {
   // Cập nhật cấu hình trong Google Sheets
   async updateConfig(config: Partial<DashboardConfig>): Promise<boolean> {
     try {
+      if (!this.isConfigured || !this.auth) {
+        console.warn('Google Sheets not configured - skipping config update');
+        return false;
+      }
+
       const flatConfig = this.flattenObject(config);
       const values = [
         ['Key', 'Value', 'Description', 'Last Updated'],
@@ -130,6 +158,11 @@ export class GoogleSheetsService {
   // Lấy dữ liệu trips trong khoảng thời gian
   async getTrips(startDate: Date, endDate: Date): Promise<VehicleTrip[]> {
     try {
+      if (!this.isConfigured || !this.auth) {
+        console.warn('Google Sheets not configured - returning empty trips');
+        return [];
+      }
+
       const response = await sheets.spreadsheets.values.get({
         auth: this.auth,
         spreadsheetId: this.spreadsheetId,
@@ -176,6 +209,11 @@ export class GoogleSheetsService {
   // Tạo sheet mới cho tháng mới
   async createMonthlySheet(year: number, month: number): Promise<boolean> {
     try {
+      if (!this.isConfigured || !this.auth) {
+        console.warn('Google Sheets not configured - skipping monthly sheet creation');
+        return false;
+      }
+
       const sheetName = `${year}-${month.toString().padStart(2, '0')}`;
 
       await sheets.spreadsheets.batchUpdate({
@@ -291,6 +329,12 @@ export class GoogleSheetsService {
 
     return descriptions[key] || 'Cấu hình hệ thống';
   }
+
+  // Check service availability
+  isAvailable(): boolean {
+    return this.isConfigured;
+  }
 }
 
+// Export singleton instance
 export const googleSheetsService = new GoogleSheetsService();
